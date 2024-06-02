@@ -46,7 +46,7 @@ vector_db_path = configs['VECTORDB_PATH']
 
 
 @app.post('/embeddings')
-def creat_embeddings():
+async def creat_embeddings():
     
     text_splitter = RecursiveCharacterTextSplitter(
     chunk_size = 1000,
@@ -78,7 +78,7 @@ def creat_embeddings():
     
 
 @app.post('/chat')
-def create_chat(request: ChatRequest):
+async def create_chat(request: ChatRequest):
     
     query = request.query
     
