@@ -64,7 +64,7 @@ class MySQLAgent:
 sentence_delimiters=frozenset(u'。！？……')
 allow_speech_tags = ['an', 'i', 'j', 'l', 'n', 'nr', 'nrfg', 'ns', 'nt', 'nz', 't', 'v', 'vd', 'vn', 'eng']
 
-configs = read_json('configs.json')
+configs = read_json('.env/configs.json')
 DICT_BIG_PATH = configs["DICT_BIG_PATH"]
 MYDIC_PATH = configs['MYDIC_PATH']
 jieba.set_dictionary(DICT_BIG_PATH)
