@@ -21,6 +21,8 @@ from langchain_google_genai import (
 )
 from pydantic import BaseModel
 
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 class ChatRequest(BaseModel):
     query: str

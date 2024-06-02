@@ -3,7 +3,7 @@ import re
 import pandas as pd
 import json
 from src.utils import read_config
-from langchain.document_loaders import PyPDFLoader
+from langchain_community.document_loaders import PyPDFLoader
 from src.FastTextRank4Word import FastTextRank4Word
 from src.FastTextRank4Sentence import FastTextRank4Sentence
 
