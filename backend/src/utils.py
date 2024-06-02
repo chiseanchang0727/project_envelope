@@ -1,6 +1,6 @@
 import pandas as pd
 import json
-from sqlalchemy import create_engine
+# from sqlalchemy import create_engine
 import sys
 import jieba
 import math
