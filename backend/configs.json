@@ -1,5 +1,5 @@
 {
-    "DATA_PATH" : "data/part3/",
+    "DATA_PATH" : "../data/part3/",
     "DB_PATH" : "vectorstores/db/",
     "DICT_BIG_PATH": "dict/dict.big.txt",
     "MYDIC_PATH": "dict/mydic2.txt"
