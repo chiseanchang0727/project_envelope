@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import Container from "./Container";
 import AIResponse from "./Answerbox";
+import '../../assets/css/title_section.css';
 
 const App = () => {
     const [query, setQuery] = useState("");
