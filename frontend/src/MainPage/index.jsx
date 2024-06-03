@@ -8,37 +8,17 @@ const App = () => {
     const [finalquery, setFinalQuery] = useState("");
     const [isLoading, setIsLoading] = useState(false);
 
-    const handleButtonClick = async () => {
-        const user_query = query.trim();
-
-        try {
-            if (user_query === "") {
-                throw Error("沒有問題輸入.");
-            }
-
-            setIsLoading(true);
-            setFinalQuery(user_query);
-        } catch (e) {
-            alert(e.message);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
     return (
         <div>
             <section className="welcome-hero">
-                <div className="container">
                     <div className="header-text">
-                        <h1>資料查詢AI</h1>
+                        <h1>監察院案件不二查評估系統</h1>
                         <p className="subheading">
-                            透過對AI詢問在廣大的資料庫中尋找相關訊息
                         </p>
                     </div>
-                </div>
             </section>
 
-            <Container title="輸入問題">
+            <Container title="輸入案件內容">
                 <input
                     type="text"
                     value={query}
@@ -46,13 +26,28 @@ const App = () => {
                 />
                 <button
                     disabled={isLoading}
-                    onClick={handleButtonClick}
+                    onClick={async () => {
+                        const user_query = query.trim();
+
+                        try {
+                            if (user_query === "") {
+                                throw Error("沒有輸入問題。");
+                            } 
+
+                            setIsLoading(true);
+                            setFinalQuery(user_query);
+                        } catch (e) {
+                            alert(e.message);
+                        } finally {
+                            setIsLoading(false);
+                        }
+                    }}
                 >
                     輸入訊息
                 </button>
             </Container>
 
-            <AIResponse user_query={finalquery} />
+            {finalquery && <AIResponse user_query={finalquery} />}
         </div>
     );
 };

@@ -50,7 +50,7 @@ const AIResponse = ({user_query}) => {
             </div>
             ) : (
                 <div>
-                <h3>查無資料</h3>
+                {/* <h3>查無資料</h3> */}
                 </div>
             )}
         </Container>
