@@ -103,37 +103,33 @@ async def create_chat(request: ChatRequest):
     # query = "行政院原住民委員會的相關資訊"
 
     embedding_vector = embeddings.embed_query(query)
-    docs = vectorstore.similarity_search_by_vector(embedding_vector, k=1)
-    reference = {}
+    docs = vectorstore.similarity_search_by_vector(embedding_vector, k=3)
+    response_data = {}
     for i, page in enumerate(docs):
         # match_content_list.append(page.page_content)
-        reference[i] = {
-            "reference_content": page.page_content,
-            "metadata": page.metadata
+        # reference[i] = {
+        #     "reason": page.page_content,
+        #     "metadata": page.metadata
+        # }
+
+        template = """
+        ### INSTRUCTION: 你是一位資深的監察院案件資料專家。你的目標是對以下 REF 資料進行摘要。只要提供摘要結果就好。
+        ### REF: {reference}
+        ### ASSISTANT: """
+        prompt = PromptTemplate.from_template(template)
+        chain = prompt | llm
+        data = {
+            "reference": page.page_content
         }
 
+    
+        llm_response = chain.invoke(data)
 
-    template = """
-    ### INSTRUCTION: 你是一位資深的監察院資料查詢專家。你的目標是解釋以下 REF 資料，用簡潔準確的方式説明其他人瞭解查詢到的相關內容。",
-    ### REF: {reference}
-    ### USER: {query}
-    ### ASSISTANT: """
-    prompt = PromptTemplate.from_template(template)
-    chain = prompt | llm
-    data = {
-        "reference": " ".join(reference[0]['reference_content']),
-        "query": query,
-    }
+        response_data[i] = {
+            "summary": llm_response.content,
+            "source": page.metadata['document']
+        }
 
-    
-    response = chain.invoke(data)
-    response.content
-    
-    response_data = {
-        "ai_answer": response.content,
-        "source": reference[0]['metadata']['document']
-    }
-    
     return JSONResponse(response_data)
 
 if __name__ == "__main__":
