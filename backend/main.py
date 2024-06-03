@@ -113,7 +113,7 @@ async def create_chat(request: ChatRequest):
         # }
 
         template = """
-        ### INSTRUCTION: 你是一位資深的監察院案件資料專家。你的目標是對以下 REF 資料進行摘要。只要提供摘要結果就好。
+        ### INSTRUCTION: 你是一位資深的監察院案件資料專家。你的目標是對以下 REF 資料進行摘要。只要提供摘要結果就好。`
         ### REF: {reference}
         ### ASSISTANT: """
         prompt = PromptTemplate.from_template(template)
