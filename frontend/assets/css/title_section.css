@@ -1,0 +1,32 @@
+.welcome-hero {
+    background: linear-gradient(135deg, #4a90e2, #50e3c2);
+    color: #fff; /* This will set a default color for the section */
+    padding: 50px 20px;
+    text-align: center;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 30px;
+}
+
+.welcome-hero .header-text {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.welcome-hero h1, .welcome-hero .subheading {
+    color: #000; /* Override color to black */
+}
+
+.welcome-hero h1 {
+    font-size: 36px;
+    margin-bottom: 15px;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.welcome-hero .subheading {
+    font-size: 18px;
+    font-weight: 300;
+    margin-bottom: 0;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+}

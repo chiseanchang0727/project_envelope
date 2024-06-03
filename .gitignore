@@ -6,6 +6,11 @@ __pycache__/
 # C extensions
 *.so
 
+cache/
+
+node_modules/
+.parcel-cache
+
 # Distribution / packaging
 .Python
 build/

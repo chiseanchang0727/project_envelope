@@ -1,6 +1,6 @@
 import pandas as pd
 import json
-from sqlalchemy import create_engine
+# from sqlalchemy import create_engine
 import sys
 import jieba
 import math
@@ -18,45 +18,33 @@ def read_config(path):
     except json.JSONDecodeError:
         print(f"Error decoding JSON from the file {path}.")
 
-def read_json(file_path):
-    try:
-        with open(file_path, 'r') as file:
-            data = json.load(file)
-            return data
-    except FileNotFoundError:
-        print(f"The file {file_path} does not exist.")
-    except json.JSONDecodeError:
-        print("Invalid JSON file.")
-    except Exception as e:
-        print(f"An error occurred: {e}")
+# class MySQLAgent:
+#     def __init__(self, config) -> None:
+#         self.config = config
+#         self.db_connector()
 
-class MySQLAgent:
-    def __init__(self, config) -> None:
-        self.config = config
-        self.db_connector()
+#     def db_connector(self):
+#         user = self.config['user']
+#         pw = self.config['pw']
+#         host = self.config['host']
+#         port = self.config['port']
+#         database = self.config['database']
 
-    def db_connector(self):
-        user = self.config['user']
-        pw = self.config['pw']
-        host = self.config['host']
-        port = self.config['port']
-        database = self.config['database']
+#         connection_string = f"mysql+pymysql://{user}:{pw}@{host}:{port}/{database}?charset=utf8mb4"
 
-        connection_string = f"mysql+pymysql://{user}:{pw}@{host}:{port}/{database}?charset=utf8mb4"
+#         self.engine = create_engine(connection_string)
 
-        self.engine = create_engine(connection_string)
+#     def read_table(self, query) -> pd.DataFrame:
 
-    def read_table(self, query) -> pd.DataFrame:
+#         df = pd.read_sql(query, con=self.engine)
+#         df.columns = df.columns.str.lower()
 
-        df = pd.read_sql(query, con=self.engine)
-        df.columns = df.columns.str.lower()
+#         return df
 
-        return df
+#     def write_table(self, data, table_name, if_exists, index, data_type):
 
-    def write_table(self, data, table_name, if_exists, index, data_type):
-
-        data.to_sql(name=table_name, con=self.engine,
-                    if_exists=if_exists, index=index, dtype=data_type)
+#         data.to_sql(name=table_name, con=self.engine,
+#                     if_exists=if_exists, index=index, dtype=data_type)
 
 #-*- encoding:utf-8 -*-
 
@@ -64,7 +52,7 @@ class MySQLAgent:
 sentence_delimiters=frozenset(u'。！？……')
 allow_speech_tags = ['an', 'i', 'j', 'l', 'n', 'nr', 'nrfg', 'ns', 'nt', 'nz', 't', 'v', 'vd', 'vn', 'eng']
 
-configs = read_json('configs.json')
+configs = read_config('.env/configs.json')
 DICT_BIG_PATH = configs["DICT_BIG_PATH"]
 MYDIC_PATH = configs['MYDIC_PATH']
 jieba.set_dictionary(DICT_BIG_PATH)
