@@ -6,7 +6,7 @@
     border-radius: 12px;
     background: linear-gradient(135deg, #f0f0f0, #ffffff);
     width: 100%; /* Adjust based on your layout needs */
-    max-width: 1000px;
+    max-width: 1500px;
     transition: transform 0.3s, box-shadow 0.3s;
 }
 
@@ -48,6 +48,13 @@ input[type="text"]:focus {
     border-color: #007BFF;
     box-shadow: 0 0 8px rgba(0, 123, 255, 0.2);
     outline: none;
+}
+
+.input-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
 }
 
 button {
@@ -104,4 +111,57 @@ button:hover:not(:disabled) {
 .button:hover {
     background-color: #0056b3;
     transform: translateY(-3px);
+}
+
+.horizontal-layout {
+    display: flex;
+    gap: 1rem;
+}
+.horizontal-layout p {
+    margin: 0;
+}
+
+.container-message {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.llm-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    
+}
+
+.llm-table th, .llm-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    
+}
+
+.llm-table th{
+    white-space: nowrap;
+}
+
+.llm-table th {
+    padding-top: 12px;
+    padding-bottom: 12px;
+    text-align: center;
+    background-color: #f2f2f2;
+}
+
+.llm-table td {
+    text-align: center; /* Center align the content */
+    vertical-align: middle; /* Vertically align the content in the middle */
+}
+
+
+.llm-table .score-align {
+    text-align: center; /* Left align specific columns */
+}
+
+.llm-table .summary-align {
+    text-align: left; /* Left align specific columns */
 }

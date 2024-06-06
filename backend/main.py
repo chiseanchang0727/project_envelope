@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from src.utils import read_config
+import re
 import os
 from src.data_processing import process_data_as_df
 import google.generativeai as genai
@@ -12,7 +13,7 @@ import google.ai.generativelanguage as glm
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.document_loaders import DataFrameLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.vectorstores import FAISS
+from langchain_community.vectorstores.faiss import FAISS, DistanceStrategy
 from langchain.prompts import PromptTemplate
 from langchain_google_genai import (
     ChatGoogleGenerativeAI,
@@ -47,7 +48,7 @@ vector_db_path = configs['VECTORDB_PATH']
 # chroma_collection_name = "langchain"
 
 
-@app.post('/embeddings')
+@app.get('/embeddings')
 async def creat_embeddings():
     
     text_splitter = RecursiveCharacterTextSplitter(
@@ -74,8 +75,9 @@ async def creat_embeddings():
     if not os.path.exists(vector_db_path):
         os.makedirs(vector_db_path)
         print(f"Created folder: {vector_db_path}")
-        
-    vector_store = FAISS.from_documents(reason_documents, embeddings)
+
+     
+    vector_store = FAISS.from_documents(reason_documents, embeddings, normalize_L2=True, distance_strategy=DistanceStrategy.MAX_INNER_PRODUCT)
     vector_store.save_local(folder_path=vector_db_path)
     
 
@@ -103,7 +105,7 @@ async def create_chat(request: ChatRequest):
     # query = "行政院原住民委員會的相關資訊"
 
     embedding_vector = embeddings.embed_query(query)
-    docs = vectorstore.similarity_search_by_vector(embedding_vector, k=3)
+    docs = vectorstore.similarity_search_with_score_by_vector(embedding_vector, k=3)
     response_data = {}
     for i, page in enumerate(docs):
         # match_content_list.append(page.page_content)
@@ -113,24 +115,29 @@ async def create_chat(request: ChatRequest):
         # }
 
         template = """
-        ### INSTRUCTION: 你是一位資深的監察院案件資料專家。你的目標是對以下 REF 資料進行摘要。只要提供摘要結果就好。`
+        ### INSTRUCTION: 你是一位資深的監察院案件資料專家。你的目標是對以下 REF 資料進行摘要，若沒摘要好，外婆會很傷心。不要列出"**摘要:**"等字樣。`
         ### REF: {reference}
         ### ASSISTANT: """
         prompt = PromptTemplate.from_template(template)
         chain = prompt | llm
         data = {
-            "reference": page.page_content
+            "reference": page[0].page_content
         }
-
     
         llm_response = chain.invoke(data)
+        
+        pattern = r'\*\*摘要：\*\*'
+        if re.search(pattern, llm_response.content):
+            re.sub(pattern, '', llm_response.content)
 
         response_data[i] = {
             "summary": llm_response.content,
-            "source": page.metadata['document']
+            "source": page[0].metadata['document'],
+            "score": f"{page[1]:.2f}",
+            "target": page[0].metadata['target']
         }
 
-    return JSONResponse(response_data)
+    return response_data
 
 if __name__ == "__main__":
     

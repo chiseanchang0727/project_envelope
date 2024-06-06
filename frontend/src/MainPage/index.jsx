@@ -19,6 +19,7 @@ const App = () => {
             </section>
 
             <Container title="輸入案件內容">
+                <div className="input-wrapper">
                 <input
                     type="text"
                     value={query}
@@ -45,6 +46,9 @@ const App = () => {
                 >
                     輸入訊息
                 </button>
+
+                </div>
+                
             </Container>
 
             {finalquery && <AIResponse user_query={finalquery} />}
