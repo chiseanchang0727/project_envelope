@@ -13,6 +13,10 @@ const AIResponse = ({ user_query }) => {
         const fetchResult = async () => {
             try {
                 setLoading(true)
+                // const embedding_response = await fetch(`${end_point}embeddings`)
+                // if (!embedding_response.ok){
+                //     throw new Error("Embedding failed.")
+                // }
                 const response = await fetch(`${end_point}chat`, {
                     method: 'POST',
                     headers: {
@@ -45,18 +49,31 @@ const AIResponse = ({ user_query }) => {
     return (
         <Container title="查詢結果">
             {loading ? (
-                <div>查詢中...</div>
+                <div className="container-message">查詢中...</div>
             ) : (
                 llm_result ? (
-                    Object.keys(llm_result).map(key => (
-                        <div className="llmresult" key={key}>
-                            <p><strong>資料來源:</strong> {llm_result[key].source}</p>
-                            <p><strong>案由摘要:</strong> </p>
-                            <p>{llm_result[key].summary}</p>
-                        </div>
-                    ))
+                    <table className="llm-table">
+                        <thead>
+                            <tr>
+                                <th className="col_name">資料來源</th>
+                                <th className="col_name">被糾正機關</th>
+                                <th className="col_name">相似度</th>
+                                <th className="col_name">案由摘要</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {Object.keys(llm_result).map(key => (
+                                <tr key={key}>
+                                    <td >{llm_result[key].source}</td>
+                                    <td className="summary-align">{llm_result[key].target}</td>
+                                    <td className="score-align">{llm_result[key].score}</td>
+                                    <td className="summary-align">{llm_result[key].summary}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 ) : (
-                    <div>查無資料</div>
+                    <div className="container-message">查無資料</div>
                 )
             )}
         </Container>
