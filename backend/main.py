@@ -128,33 +128,33 @@ async def create_chat(request: ChatRequest):
         if re.search(pattern, summary_response.content):
             re.sub(pattern, '', summary_response.content)
             
-        tuple_prompt = PromptTemplate.from_template(gemini_prompts.TUPLE_PROMPT)
-        chain = tuple_prompt | llm
-        tuple_data = {
+        triple_prompt = PromptTemplate.from_template(gemini_prompts.triple_PROMPT)
+        chain = triple_prompt | llm
+        triple_data = {
             "reference": page[0].page_content
         }
 
-        tuple_response = chain.invoke(tuple_data)
+        triple_response = chain.invoke(triple_data)
 
-        tuple_response_result = re.sub(r'[```json\n]', '', tuple_response.content).replace("實體", "entity").replace("關係", "relationship").split("、")[0]
+        triple_response_result = re.sub(r'[```json\n]', '', triple_response.content).replace("實體", "entity").replace("關係", "relationship").split("、")[0]
 
         to_json_prompt = PromptTemplate.from_template(gemini_prompts.TO_JSON_PROMPT)
         chain = to_json_prompt | llm
         data = {
-            "reference": tuple_response_result
+            "reference": triple_response_result
         }
 
         to_json_response = chain.invoke(data)
         
-        tuple_json_result = re.sub(r'[\n]','',to_json_response.content)
-        tuple_json_result = json.loads(f'[{tuple_json_result}]')
+        triple_json_result = re.sub(r'[\n]','',to_json_response.content)
+        triple_json_result = json.loads(f'[{triple_json_result}]')
 
         response_data[i] = {
             "summary": summary_response.content,
             "source": page[0].metadata['document'],
             "score": f"{page[1]:.2f}",
             "target": page[0].metadata['target'],
-            "tuple": tuple_json_result
+            "triple": triple_json_result
         }
 
 if __name__ == "__main__":
