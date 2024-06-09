@@ -3,9 +3,11 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from src.utils import read_config
 import re
 import os
+import json
+from src.utils import read_config
+from prompts import gemini_prompts
 from src.data_processing import process_data_as_df
 import google.generativeai as genai
 import google.ai.generativelanguage as glm
@@ -114,30 +116,46 @@ async def create_chat(request: ChatRequest):
         #     "metadata": page.metadata
         # }
 
-        template = """
-        ### INSTRUCTION: 你是一位資深的監察院案件資料專家。你的目標是對以下 REF 資料進行摘要，若沒摘要好，外婆會很傷心。不要列出"**摘要:**"等字樣。`
-        ### REF: {reference}
-        ### ASSISTANT: """
-        prompt = PromptTemplate.from_template(template)
-        chain = prompt | llm
-        data = {
+        summary_prompt = PromptTemplate.from_template(gemini_prompts.SUMMARY_PROMPT)
+        chain = summary_prompt | llm
+        summary_data = {
             "reference": page[0].page_content
         }
-    
-        llm_response = chain.invoke(data)
+
+        summary_response = chain.invoke(summary_data)
         
         pattern = r'\*\*摘要：\*\*'
-        if re.search(pattern, llm_response.content):
-            re.sub(pattern, '', llm_response.content)
-
-        response_data[i] = {
-            "summary": llm_response.content,
-            "source": page[0].metadata['document'],
-            "score": f"{page[1]:.2f}",
-            "target": page[0].metadata['target']
+        if re.search(pattern, summary_response.content):
+            re.sub(pattern, '', summary_response.content)
+            
+        tuple_prompt = PromptTemplate.from_template(gemini_prompts.TUPLE_PROMPT)
+        chain = tuple_prompt | llm
+        tuple_data = {
+            "reference": page[0].page_content
         }
 
-    return response_data
+        tuple_response = chain.invoke(tuple_data)
+
+        tuple_response_result = re.sub(r'[```json\n]', '', tuple_response.content).replace("實體", "entity").replace("關係", "relationship").split("、")[0]
+
+        to_json_prompt = PromptTemplate.from_template(gemini_prompts.TO_JSON_PROMPT)
+        chain = to_json_prompt | llm
+        data = {
+            "reference": tuple_response_result
+        }
+
+        to_json_response = chain.invoke(data)
+        
+        tuple_json_result = re.sub(r'[\n]','',to_json_response.content)
+        tuple_json_result = json.loads(f'[{tuple_json_result}]')
+
+        response_data[i] = {
+            "summary": summary_response.content,
+            "source": page[0].metadata['document'],
+            "score": f"{page[1]:.2f}",
+            "target": page[0].metadata['target'],
+            "tuple": tuple_json_result
+        }
 
 if __name__ == "__main__":
     
