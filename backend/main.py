@@ -15,13 +15,16 @@ import google.ai.generativelanguage as glm
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.document_loaders import DataFrameLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.vectorstores.faiss import FAISS, DistanceStrategy
+from langchain_community.vectorstores import Chroma
 from langchain.prompts import PromptTemplate
 from langchain_google_genai import (
     ChatGoogleGenerativeAI,
     HarmBlockThreshold,
     HarmCategory,
 )
+from langchain.chains.query_constructor.base import AttributeInfo
+from langchain.retrievers.self_query.base import SelfQueryRetriever
+from typing import Any, Dict
 from pydantic import BaseModel
 
 import warnings
@@ -47,7 +50,7 @@ api_key =configs['g_key']
 os.environ["GOOGLE_API_KEY"] = api_key
 genai.configure(api_key=api_key)
 vector_db_path = configs['VECTORDB_PATH']
-# chroma_collection_name = "langchain"
+chroma_collection_name = configs['CHROMA_COLLECTION_NAME']
 
 
 @app.get('/embeddings')
@@ -59,28 +62,33 @@ async def creat_embeddings():
     length_function= len
     )
     
-    organized_result = process_data_as_df()
+    df_data = process_data_as_df()
     
-    reason_loader = DataFrameLoader(organized_result, page_content_column='reason')
+    reason_loader = DataFrameLoader(df_data, page_content_column='reason')
     reason_data = reason_loader.load()
 
     # target_loader = DataFrameLoader(organized_result, page_content_column='target')
     # target_data = target_loader.load()
 
     reason_documents = text_splitter.transform_documents(reason_data)
-    # print("已為所有文件進行 chunk ",len(reason_documents),"筆")
+    print("已為所有文件進行 chunk ",len(reason_documents),"筆")
     
     model_name = "sentence-transformers/distiluse-base-multilingual-cased-v1"
     embeddings = HuggingFaceEmbeddings(model_name=model_name)
     
 
+    vector_db_path = "./chroma_db/"
     if not os.path.exists(vector_db_path):
         os.makedirs(vector_db_path)
         print(f"Created folder: {vector_db_path}")
 
-     
-    vector_store = FAISS.from_documents(reason_documents, embeddings, normalize_L2=True, distance_strategy=DistanceStrategy.MAX_INNER_PRODUCT)
-    vector_store.save_local(folder_path=vector_db_path)
+    id_list = df_data['source'].to_list()     
+    vector_store = Chroma.from_documents(documents=reason_documents, 
+                                     persist_directory=vector_db_path, 
+                                     collection_name=chroma_collection_name, 
+                                     ids=id_list,
+                                     embedding=embeddings,
+                                     collection_metadata={"hnsw:space": "cosine"})
     
 
 @app.post('/chat')
@@ -98,28 +106,72 @@ async def create_chat(request: ChatRequest):
         },
     )
     
+
+    
     model_name = "sentence-transformers/distiluse-base-multilingual-cased-v1"
     embeddings = HuggingFaceEmbeddings(model_name=model_name)
     
-    
-    vectorstore = FAISS.load_local(folder_path=vector_db_path, allow_dangerous_deserialization=True, embeddings=embeddings)
+    vectorstore = Chroma(persist_directory=vector_db_path, collection_name=chroma_collection_name, embedding_function=embeddings)
     
     # query = "行政院原住民委員會的相關資訊"
+    
+    metadata_field_info = [
+        AttributeInfo(
+            name='source',
+            description='the name of the document',
+            type='string'
+        ),
+        AttributeInfo(
+            name='target',
+            description='the receiver of the document',
+            type='string',
+        ),
+        AttributeInfo(
+            name='reason',
+            description='the reason of having this document',
+            type='string',
+        ),
+        AttributeInfo(
+            name='fact',
+            description='the fact of the document',
+            type='string',
+        ),
+        AttributeInfo(
+            name='keywords',
+            description='the keywords of the reason part of the document',
+            type='string'
+        )
+    ]
 
-    embedding_vector = embeddings.embed_query(query)
-    docs = vectorstore.similarity_search_with_score_by_vector(embedding_vector, k=3)
+    class CustomSelfQueryRetriever(SelfQueryRetriever):
+        def _get_docs_with_query(
+            self, query: str, search_kwargs: Dict[str, Any]
+        ):
+            """Get docs, adding score information."""
+            docs, scores = zip(
+                *vectorstore.similarity_search_with_score(query, **search_kwargs)
+            )
+            for doc, score in zip(docs, scores):
+                doc.metadata["score"] = score
+
+            return docs
+        
+    document_content_description = 'agent'
+    retriever = CustomSelfQueryRetriever.from_llm(
+            llm,
+            vectorstore,
+            document_content_description,
+            metadata_field_info,
+    )
+    docs = retriever.invoke(query)
+
     response_data = {}
     for i, page in enumerate(docs):
-        # match_content_list.append(page.page_content)
-        # reference[i] = {
-        #     "reason": page.page_content,
-        #     "metadata": page.metadata
-        # }
-
+        print(page.metadata['source'])
         summary_prompt = PromptTemplate.from_template(gemini_prompts.SUMMARY_PROMPT)
         chain = summary_prompt | llm
         summary_data = {
-            "reference": page[0].page_content
+            "reference": page.page_content
         }
 
         summary_response = chain.invoke(summary_data)
@@ -128,34 +180,15 @@ async def create_chat(request: ChatRequest):
         if re.search(pattern, summary_response.content):
             re.sub(pattern, '', summary_response.content)
             
-        triple_prompt = PromptTemplate.from_template(gemini_prompts.triple_PROMPT)
-        chain = triple_prompt | llm
-        triple_data = {
-            "reference": page[0].page_content
-        }
-
-        triple_response = chain.invoke(triple_data)
-
-        triple_response_result = re.sub(r'[```json\n]', '', triple_response.content).replace("實體", "entity").replace("關係", "relationship").split("、")[0]
-
-        to_json_prompt = PromptTemplate.from_template(gemini_prompts.TO_JSON_PROMPT)
-        chain = to_json_prompt | llm
-        data = {
-            "reference": triple_response_result
-        }
-
-        to_json_response = chain.invoke(data)
-        
-        triple_json_result = re.sub(r'[\n]','',to_json_response.content)
-        triple_json_result = json.loads(f'[{triple_json_result}]')
 
         response_data[i] = {
             "summary": summary_response.content,
-            "source": page[0].metadata['document'],
-            "score": f"{page[1]:.2f}",
-            "target": page[0].metadata['target'],
-            "triple": triple_json_result
+            "source": page.metadata['source'],
+            "score": f"{page.metadata['score']:.2f}",
+            "target": page.metadata['target']
         }
+        
+    return response_data
 
 if __name__ == "__main__":
     

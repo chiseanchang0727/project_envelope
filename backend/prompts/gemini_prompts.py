@@ -12,3 +12,9 @@ TO_JSON_PROMPT="""
 ### INSTRUCTION: 將以下內容調整成符合JSON規範的格式，以及補上entity1或是entity2，不要顯示JSON字樣，注意必須符合正規的JSON格式，否則外婆會很難過。
 ### REF: {reference}
 ### ASSISTANT: """
+
+CONCLUSION_PROMPT="""
+### INSTRUCTION: 說明查詢的內容{query}與 REF 中的之間的關係。若找不到合理的關係則說沒有明確的相關性，不要亂說
+### REF: {reference}
+### ASSISTANT: 
+"""
