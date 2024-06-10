@@ -62,7 +62,7 @@ def word_sentence_extraction(input, kw_num=10, ks_num=1):
         "target": f"{input['target']}",
         "reason": f"{input['reason']}",
         "fact" : f"{input['fact']}",
-        "metadata" : { "kw" : f"{kw}", "ks" : f"{ks}"}
+        "keywords": f"{str(kw)}"
         }
     
 def content_organize(input):
@@ -89,6 +89,6 @@ def process_data_as_df() -> pd.DataFrame:
     organized_result = content_organize(dict(list(pdf_contents.items())))
     
     df = pd.DataFrame(organized_result).transpose()
-    df = df.reset_index().rename(columns={'index':'document'})
+    df = df.reset_index().rename(columns={'index':'source'})
     
     return df
