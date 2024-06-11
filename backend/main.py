@@ -95,7 +95,7 @@ async def creat_embeddings():
 async def create_chat(request: ChatRequest):
     
     query = request.query
-    
+    print(query)
     llm = ChatGoogleGenerativeAI(
         model="gemini-pro",
         convert_system_message_to_human=True,
@@ -112,50 +112,53 @@ async def create_chat(request: ChatRequest):
     embeddings = HuggingFaceEmbeddings(model_name=model_name)
     
     vectorstore = Chroma(persist_directory=vector_db_path, collection_name=chroma_collection_name, embedding_function=embeddings)
-    
-    # query = "行政院原住民委員會的相關資訊"
-    
+      
     metadata_field_info = [
         AttributeInfo(
             name='source',
-            description='the name of the document',
+            description='文件名稱',
             type='string'
         ),
         AttributeInfo(
             name='target',
-            description='the receiver of the document',
+            description='受文對象、受文者',
             type='string',
         ),
         AttributeInfo(
             name='reason',
-            description='the reason of having this document',
+            description='被糾正的原因',
             type='string',
         ),
         AttributeInfo(
             name='fact',
-            description='the fact of the document',
+            description='被糾正的證據',
             type='string',
         ),
         AttributeInfo(
             name='keywords',
-            description='the keywords of the reason part of the document',
+            description='被糾正原因中的關鍵字',
+            type='string'
+        ),
+        AttributeInfo(
+            name='relationship_between_entities',
+            description='被糾正原因中呈現三元組關係的entities(實體)',
             type='string'
         )
     ]
 
     class CustomSelfQueryRetriever(SelfQueryRetriever):
-        def _get_docs_with_query(
-            self, query: str, search_kwargs: Dict[str, Any]
-        ):
-            """Get docs, adding score information."""
-            docs, scores = zip(
-                *vectorstore.similarity_search_with_score(query, **search_kwargs)
-            )
-            for doc, score in zip(docs, scores):
-                doc.metadata["score"] = score
+            def _get_docs_with_query(
+                self, query: str, search_kwargs: Dict[str, Any]
+            ):
+                """Get docs, adding score information."""
+                docs, scores = zip(
+                    *vectorstore.similarity_search_with_score(query, **search_kwargs)
+                )
+                for doc, score in zip(docs, scores):
+                    doc.metadata["score"] = 1-score
 
-            return docs
-        
+                return docs
+            
     document_content_description = 'agent'
     retriever = CustomSelfQueryRetriever.from_llm(
             llm,
@@ -163,32 +166,48 @@ async def create_chat(request: ChatRequest):
             document_content_description,
             metadata_field_info,
     )
-    docs = retriever.invoke(query)
 
-    response_data = {}
-    for i, page in enumerate(docs):
-        print(page.metadata['source'])
-        summary_prompt = PromptTemplate.from_template(gemini_prompts.SUMMARY_PROMPT)
-        chain = summary_prompt | llm
-        summary_data = {
-            "reference": page.page_content
-        }
 
-        summary_response = chain.invoke(summary_data)
-        
-        pattern = r'\*\*摘要：\*\*'
-        if re.search(pattern, summary_response.content):
-            re.sub(pattern, '', summary_response.content)
+    try: 
+        docs = retriever.invoke(query)
+        response_data = {}
+        for i, page in enumerate(docs):
+            print(page.metadata['source'])
+            summary_prompt = PromptTemplate.from_template(gemini_prompts.SUMMARY_PROMPT)
+            chain = summary_prompt | llm
+            summary_data = {
+                "reference": page.page_content
+            }
+
+            summary_response = chain.invoke(summary_data)
             
+            pattern = r'\*\*摘要：\*\*'
+            if re.search(pattern, summary_response.content):
+                re.sub(pattern, '', summary_response.content)
+                
+                
+            # conclusion_prompt = PromptTemplate.from_examples(gemini_prompts.CONCLUSION_PROMPT)
+            # chain = conclusion_prompt | llm
+            # conclusion_data = {
+            #     "query" : query,
+            #     "reference": page.page_content
+            # }
+            # conclusion_response = chain.invoke(conclusion_data)
 
-        response_data[i] = {
-            "summary": summary_response.content,
-            "source": page.metadata['source'],
-            "score": f"{page.metadata['score']:.2f}",
-            "target": page.metadata['target']
-        }
+            response_data[i] = {
+                "summary": summary_response.content,
+                "source": page.metadata['source'],
+                "score": f"{page.metadata['score']:.2f}",
+                "target": page.metadata['target'],
+                # "conclusion": conclusion_response.content
+            }
+
+    except:
+        print('no answer found.')
         
     return response_data
+    # except:
+    #     return print('no answer found.')
 
 if __name__ == "__main__":
     

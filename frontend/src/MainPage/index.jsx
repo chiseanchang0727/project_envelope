@@ -18,7 +18,7 @@ const App = () => {
                     </div>
             </section>
 
-            <Container title="輸入案件內容">
+            <Container title="輸入查詢內容">
                 <div className="input-wrapper">
                 <input
                     type="text"
