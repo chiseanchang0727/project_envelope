@@ -57,8 +57,8 @@ const AIResponse = ({ user_query }) => {
                             <tr>
                                 <th className="col_name">資料來源</th>
                                 <th className="col_name">被糾正機關</th>
-                                <th className="col_name">相似度</th>
                                 <th className="col_name">案由摘要</th>
+                                <th className="col_name">相似度</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -66,8 +66,8 @@ const AIResponse = ({ user_query }) => {
                                 <tr key={key}>
                                     <td >{llm_result[key].source}</td>
                                     <td className="summary-align">{llm_result[key].target}</td>
-                                    <td className="score-align">{llm_result[key].score}</td>
-                                    <td className="summary-align">{llm_result[key].summary}</td>
+                                    <td className="score-align">{llm_result[key].summary}</td>
+                                    <td className="summary-align">{llm_result[key].score}</td>
                                 </tr>
                             ))}
                         </tbody>

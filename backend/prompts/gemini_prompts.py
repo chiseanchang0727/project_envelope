@@ -18,3 +18,14 @@ CONCLUSION_PROMPT="""
 ### REF: {reference}
 ### ASSISTANT: 
 """
+
+QUERY_ENTITY_EXTRACT_PROMPT="""
+    A question is provided below. Given the question, extract up to 5
+    entity names and types from the text. Focus on extracting the key 
+entities that we can use to best lookup answers to the question. Avoid 
+stopwords.\n"
+    "---------------------\n"
+    "{question}\n"
+    "---------------------\n"
+    "{format_instructions}\n"
+"""
