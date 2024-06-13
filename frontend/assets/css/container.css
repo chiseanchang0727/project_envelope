@@ -59,7 +59,7 @@ input[type="text"]:focus {
 
 button {
     padding: 10px 20px;
-    margin-top: 10px;
+    margin-top: 0px;
     color: #fff;
     background-color: #2b2b2b;
     border: none;

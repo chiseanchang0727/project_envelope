@@ -76,8 +76,6 @@ async def creat_embeddings():
     model_name = "sentence-transformers/distiluse-base-multilingual-cased-v1"
     embeddings = HuggingFaceEmbeddings(model_name=model_name)
     
-
-    vector_db_path = "./chroma_db/"
     if not os.path.exists(vector_db_path):
         os.makedirs(vector_db_path)
         print(f"Created folder: {vector_db_path}")
@@ -94,7 +92,7 @@ async def creat_embeddings():
 @app.post('/chat')
 async def create_chat(request: ChatRequest):
     
-    query = request.query
+    query = "對象包括" + request.query 
     print(query)
     llm = ChatGoogleGenerativeAI(
         model="gemini-pro",
@@ -106,32 +104,27 @@ async def create_chat(request: ChatRequest):
         },
     )
     
-
     
     model_name = "sentence-transformers/distiluse-base-multilingual-cased-v1"
     embeddings = HuggingFaceEmbeddings(model_name=model_name)
-    
+
     vectorstore = Chroma(persist_directory=vector_db_path, collection_name=chroma_collection_name, embedding_function=embeddings)
-      
+
     metadata_field_info = [
-        AttributeInfo(
-            name='source',
-            description='文件名稱',
-            type='string'
-        ),
+
         AttributeInfo(
             name='target',
-            description='受文對象、受文者',
+            description='對象、受文對象、受文者',
             type='string',
         ),
         AttributeInfo(
             name='reason',
-            description='被糾正的原因',
+            description='被糾正原因、案由',
             type='string',
         ),
         AttributeInfo(
             name='fact',
-            description='被糾正的證據',
+            description='被糾正的證據、事實、事實與理由',
             type='string',
         ),
         AttributeInfo(
@@ -155,7 +148,10 @@ async def create_chat(request: ChatRequest):
                     *vectorstore.similarity_search_with_score(query, **search_kwargs)
                 )
                 for doc, score in zip(docs, scores):
-                    doc.metadata["score"] = 1-score
+                    if score < 1:
+                        doc.metadata["score"] = 1-score
+                    elif score >1 :
+                        doc.metadata["score"] = 1
 
                 return docs
             
@@ -165,14 +161,15 @@ async def create_chat(request: ChatRequest):
             vectorstore,
             document_content_description,
             metadata_field_info,
+            verbose=True
     )
 
 
-    try: 
-        docs = retriever.invoke(query)
+    try:
+
+        docs = retriever.get_relevant_documents(query)
         response_data = {}
         for i, page in enumerate(docs):
-            print(page.metadata['source'])
             summary_prompt = PromptTemplate.from_template(gemini_prompts.SUMMARY_PROMPT)
             chain = summary_prompt | llm
             summary_data = {
@@ -202,8 +199,9 @@ async def create_chat(request: ChatRequest):
                 # "conclusion": conclusion_response.content
             }
 
+
     except:
-        print('no answer found.')
+        return print('no answer found.')
         
     return response_data
     # except:
