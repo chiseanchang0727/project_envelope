@@ -12,13 +12,13 @@ const App = () => {
         <div>
             <section className="welcome-hero">
                     <div className="header-text">
-                        <h1>監察院案件不二查評估系統</h1>
+                        <h1>糾正案文的智慧檢索與應用</h1>
                         <p className="subheading">
                         </p>
                     </div>
             </section>
 
-            <Container title="輸入案件內容">
+            <Container title="輸入查詢內容">
                 <div className="input-wrapper">
                 <input
                     type="text"

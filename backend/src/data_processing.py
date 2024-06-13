@@ -6,8 +6,19 @@ from src.utils import read_config
 from langchain_community.document_loaders import PyPDFLoader
 from src.FastTextRank4Word import FastTextRank4Word
 from src.FastTextRank4Sentence import FastTextRank4Sentence
+from langchain.prompts import PromptTemplate
+from prompts import gemini_prompts
+import google.generativeai as genai
+from langchain_google_genai import (
+    ChatGoogleGenerativeAI,
+    HarmBlockThreshold,
+    HarmCategory,
+)
 
-
+configs = read_config('.env/configs.json')
+api_key =configs['g_key']
+os.environ["GOOGLE_API_KEY"] = api_key
+genai.configure(api_key=api_key)
 
 
 def read_pdf(files_list, data_path):
@@ -62,7 +73,7 @@ def word_sentence_extraction(input, kw_num=10, ks_num=1):
         "target": f"{input['target']}",
         "reason": f"{input['reason']}",
         "fact" : f"{input['fact']}",
-        "metadata" : { "kw" : f"{kw}", "ks" : f"{ks}"}
+        "keywords": f"{str(kw)}"
         }
     
 def content_organize(input):
@@ -77,6 +88,49 @@ def content_organize(input):
     print(f"{i+1} contents have been organized.")
     return result
 
+def creat_knowledge_graph(df: pd.DataFrame):
+    
+    llm = ChatGoogleGenerativeAI(
+    model="gemini-pro",
+    convert_system_message_to_human=True,
+    safety_settings={
+        HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+        },
+    )
+    
+    kg_result = df.copy()
+    for i, row in kg_result.iterrows():
+        
+        triple_prompt = PromptTemplate.from_template(gemini_prompts.TRIPLE_PROMPT)
+        chain = triple_prompt | llm
+        triple_data = {
+            "reference": row['reason']
+        }
+
+        triple_response = chain.invoke(triple_data)
+
+        triple_response_result = re.sub(r'[```json\n]', '', triple_response.content).replace("實體", "entity").replace("關係", "relationship").split("、")[0]
+
+        to_json_prompt = PromptTemplate.from_template(gemini_prompts.TO_JSON_PROMPT)
+        chain = to_json_prompt | llm
+        data = {
+            "reference": triple_response_result
+        }
+
+        to_json_response = chain.invoke(data)
+        
+        
+        triple_json_result = re.sub(r'[\n]','',to_json_response.content)
+
+        # triple_json_result = json.loads(f'[{triple_json_result}]')
+        
+        kg_result.loc[kg_result.index==i, 'relationship_between_entities'] = str(triple_json_result)
+        
+    return kg_result
+        
+
 def process_data_as_df() -> pd.DataFrame:
     
     configs = read_config('.env/configs.json')
@@ -89,6 +143,8 @@ def process_data_as_df() -> pd.DataFrame:
     organized_result = content_organize(dict(list(pdf_contents.items())))
     
     df = pd.DataFrame(organized_result).transpose()
-    df = df.reset_index().rename(columns={'index':'document'})
+    df = df.reset_index().rename(columns={'index':'source'})
     
-    return df
+    df_with_kg = creat_knowledge_graph(df)
+    
+    return df_with_kg
