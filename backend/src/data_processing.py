@@ -81,8 +81,12 @@ def content_organize(input):
     result = {}
 
     for i, (name, content) in enumerate(input.items()):
-        split = pattern_extraction(content)
-        temp = word_sentence_extraction(split)
+        try:
+            split = pattern_extraction(content)
+            temp = keyword_extraction(split)
+        except:
+            print(f"{name} is problematic.")
+            pass
         result[name] = temp
 
     print(f"{i+1} contents have been organized.")
