@@ -81,12 +81,12 @@ async def creat_embeddings():
         print(f"Created folder: {vector_db_path}")
 
     id_list = df_data['source'].to_list()     
-    vector_store = Chroma.from_documents(documents=reason_documents, 
-                                     persist_directory=vector_db_path, 
-                                     collection_name=chroma_collection_name, 
-                                     ids=id_list,
-                                     embedding=embeddings,
-                                     collection_metadata={"hnsw:space": "cosine"})
+    Chroma.from_documents(documents=reason_documents, 
+                          persist_directory=vector_db_path,
+                          collection_name=chroma_collection_name,
+                          ids=id_list,
+                          embedding=embeddings,
+                          collection_metadata={"hnsw:space": "cosine"})
     
 
 @app.post('/chat')
