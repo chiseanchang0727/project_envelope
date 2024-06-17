@@ -174,12 +174,14 @@ async def create_chat(request: ChatRequest):
     try:
 
         docs = retriever.get_relevant_documents(query)
-        print('got answers by selfquery.')
+        # print('got answers in 1st retriever.')
 
     except:
-        print('no answer found by selfquery.')
+        print('no answers found in 1st retriever.')
 
         docs = vectorstore.similarity_search_by_vector_with_relevance_scores(query, k=5)
+
+        return print('no answer s found in 2nd retriever.')
     
     response_data = {}
     for i, page in enumerate(docs):
