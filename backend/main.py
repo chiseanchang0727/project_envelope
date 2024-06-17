@@ -91,9 +91,14 @@ async def creat_embeddings():
 
 @app.post('/chat')
 async def create_chat(request: ChatRequest):
+
+    if chroma_collection_name:
+        pass
+    else:
+        return print("no chollection.") 
     
     query = "對象包括" + request.query 
-    print(query)
+    print(chroma_collection_name)
     llm = ChatGoogleGenerativeAI(
         model="gemini-pro",
         convert_system_message_to_human=True,
@@ -148,10 +153,11 @@ async def create_chat(request: ChatRequest):
                     *vectorstore.similarity_search_with_score(query, **search_kwargs)
                 )
                 for doc, score in zip(docs, scores):
+                    # doc.metadata["score"] = score
                     if score < 1:
                         doc.metadata["score"] = 1-score
-                    elif score >1 :
-                        doc.metadata["score"] = 1
+                    elif score > 1:
+                        doc.metadata["score"] = 0.001
 
                 return docs
             
@@ -168,40 +174,46 @@ async def create_chat(request: ChatRequest):
     try:
 
         docs = retriever.get_relevant_documents(query)
-        response_data = {}
-        for i, page in enumerate(docs):
-            summary_prompt = PromptTemplate.from_template(gemini_prompts.SUMMARY_PROMPT)
-            chain = summary_prompt | llm
-            summary_data = {
-                "reference": page.page_content
-            }
-
-            summary_response = chain.invoke(summary_data)
-            
-            pattern = r'\*\*摘要：\*\*'
-            if re.search(pattern, summary_response.content):
-                re.sub(pattern, '', summary_response.content)
-                
-                
-            # conclusion_prompt = PromptTemplate.from_examples(gemini_prompts.CONCLUSION_PROMPT)
-            # chain = conclusion_prompt | llm
-            # conclusion_data = {
-            #     "query" : query,
-            #     "reference": page.page_content
-            # }
-            # conclusion_response = chain.invoke(conclusion_data)
-
-            response_data[i] = {
-                "summary": summary_response.content,
-                "source": page.metadata['source'],
-                "score": f"{page.metadata['score']:.2f}",
-                "target": page.metadata['target'],
-                # "conclusion": conclusion_response.content
-            }
-
+        print('got answers by selfquery.')
 
     except:
-        return print('no answer found.')
+        print('no answer found by selfquery.')
+
+        docs = vectorstore.similarity_search_by_vector_with_relevance_scores(query, k=5)
+    
+    response_data = {}
+    for i, page in enumerate(docs):
+        summary_prompt = PromptTemplate.from_template(gemini_prompts.SUMMARY_PROMPT)
+        chain = summary_prompt | llm
+        summary_data = {
+            "reference": page.page_content
+        }
+
+        summary_response = chain.invoke(summary_data)
+        
+        pattern = r'\*\*摘要：\*\*'
+        if re.search(pattern, summary_response.content):
+            re.sub(pattern, '', summary_response.content)
+            
+            
+        # conclusion_prompt = PromptTemplate.from_examples(gemini_prompts.CONCLUSION_PROMPT)
+        # chain = conclusion_prompt | llm
+        # conclusion_data = {
+        #     "query" : query,
+        #     "reference": page.page_content
+        # }
+        # conclusion_response = chain.invoke(conclusion_data)
+
+        response_data[i] = {
+            "summary": summary_response.content,
+            "source": page.metadata['source'],
+            "score": f"{page.metadata['score']:.2f}",
+            "target": page.metadata['target'],
+            # "conclusion": conclusion_response.content
+        }
+
+
+
         
     return response_data
     # except:
