@@ -150,14 +150,14 @@ async def create_chat(request: ChatRequest):
             ):
                 """Get docs, adding score information."""
                 docs, scores = zip(
-                    *vectorstore.similarity_search_with_score(query, **search_kwargs)
+                    *vectorstore.similarity_search_with_relevance_scores(query, **search_kwargs)
                 )
                 for doc, score in zip(docs, scores):
-                    # doc.metadata["score"] = score
-                    if score < 1:
-                        doc.metadata["score"] = 1-score
-                    elif score > 1:
-                        doc.metadata["score"] = 0.001
+                    doc.metadata["score"] = score
+                    # if score < 1:
+                    #     doc.metadata["score"] = 1-score
+                    # elif score > 1:
+                    #     doc.metadata["score"] = 0.001
 
                 return docs
             
