@@ -10,7 +10,6 @@ from src.utils import read_config
 from prompts import gemini_prompts
 from src.data_processing import process_data_as_df
 import google.generativeai as genai
-import google.ai.generativelanguage as glm
 
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.document_loaders import DataFrameLoader
@@ -28,7 +27,7 @@ from typing import Any, Dict
 from pydantic import BaseModel
 
 import warnings
-warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("ignore")
 
 class ChatRequest(BaseModel):
     query: str

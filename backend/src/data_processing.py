@@ -25,15 +25,19 @@ def read_pdf(files_list, data_path):
     content_dict = {}
 
     for file_name in files_list:
-        file_path = data_path + file_name
-        loader = PyPDFLoader(file_path)
-        content = loader.load()
-        whole_pdf = ""
-        for i in range(len(content)):
-            whole_pdf += content[i].page_content
+        try:
+            file_path = data_path + file_name
+            loader = PyPDFLoader(file_path)
+            content = loader.load()
+            whole_pdf = ""
+            for i in range(len(content)):
+                whole_pdf += content[i].page_content
 
-        whole_pdf = re.sub(r'[：。\n\s]', '', whole_pdf)
-        content_dict[file_name] = whole_pdf
+            whole_pdf = re.sub(r'[：。\n\s]', '', whole_pdf)
+            content_dict[file_name] = whole_pdf
+        except:
+            print('')
+            pass
 
     return content_dict
 
@@ -61,13 +65,13 @@ def pattern_extraction(input):
 
     return {"target": target, "reason": reason, "fact": fact}
 
-def word_sentence_extraction(input, kw_num=10, ks_num=1):
+def keyword_extraction(input, kw_num=10, ks_num=1):
 
     kw_model = FastTextRank4Word(tol=0.0001, window=5)
     kw=[kw_model.summarize(input['reason'], kw_num)][0]
 
-    ks_model = FastTextRank4Sentence(use_w2v=False,tol=0.0001)
-    ks=ks_model.summarize(input['fact'], ks_num)
+    # ks_model = FastTextRank4Sentence(use_w2v=False,tol=0.0001)
+    # ks=ks_model.summarize(input['fact'], ks_num)
 
     return { 
         "target": f"{input['target']}",
@@ -143,7 +147,7 @@ def process_data_as_df() -> pd.DataFrame:
     files_list = [file for file in os.listdir(DATA_PATH) if os.path.isfile(os.path.join(DATA_PATH, file))]
     
     pdf_contents = read_pdf(files_list, DATA_PATH)
-        
+    print(f"{len(files_list)} has been read.")
     organized_result = content_organize(dict(list(pdf_contents.items())))
     
     df = pd.DataFrame(organized_result).transpose()
