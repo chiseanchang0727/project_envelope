@@ -193,6 +193,7 @@ async def create_chat(request: ChatRequest):
 
         summary_response = chain.invoke(summary_data)
         
+        
         pattern = r'\*\*摘要：\*\*'
         if re.search(pattern, summary_response.content):
             re.sub(pattern, '', summary_response.content)
